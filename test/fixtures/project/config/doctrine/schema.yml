@@ -1,0 +1,48 @@
+Article:
+  columns:
+    user_id:  { type: integer(8), notnull: true }
+    title:    { type: string, notnull: true }
+    content:  { type: clob, notnull: true }
+  relations:
+    User:
+      local:        user_id
+      foreign:      id
+      alias:        User
+      foreignAlias: Articles
+      onDelete:     CASCADE
+  options:
+    symfony:
+      form:   false
+      filter: false
+
+Comment:
+  columns:
+    user_id:    { type: integer(8), notnull: true }
+    article_id: { type: integer(8), notnull: true }
+    content:    { type: clob, notnull: true }
+  relations:
+    User:
+      local:        user_id
+      foreign:      id
+      alias:        User
+      foreignAlias: Articles
+      onDelete:     CASCADE
+    Article:
+      local:   article_id
+      foreign: id
+      alias:   Article
+      foreignAlias: Comments
+      onDelete: CASCADE
+  options:
+    symfony:
+      form:   false
+      filter: false
+
+User:
+  columns:
+    name:     { type: string, notnull: true }
+    password: { type: string(40), notnull: true }
+  options:
+    symfony:
+      form:   false
+      filter: false
