@@ -173,4 +173,27 @@ class Doctrine_Template_RowSecurityTest extends myUnitTestCase
         $this->assertEquals(1, count($this->find('Article')));
     }
 
+
+    /**
+     * Select: filtering by user_id
+     */
+    public function testSelect()
+    {
+        $user = $this->getUser();
+        $article = $this->helper->makeArticle(array('user_id' => $user->getId()));
+        # Noise
+        $a1 = $this->helper->makeArticle(array('user_id' => false), false);
+        $a2 = $this->helper->makeArticle(array('user_id' => false), false);
+
+        $a1->isSecure(false);
+        $a1->save();
+        $a2->isSecure(false);
+        $a2->save();
+
+        $result = Doctrine::getTable('Article')->createQuery()->execute();
+
+        $this->assertEquals(3, count($this->find('Article')));
+        $this->assertEquals(1, $result->count(), 'Auto-filtering on simple DQL queries');
+    }
+
 }
