@@ -45,19 +45,16 @@ class myTestObjectHelper
     /**
      * Create Article
      */
-    public function makeArticle(User $user = null, array $props = array(), $save = true)
+    public function makeArticle(array $props = array(), $save = true)
     {
         $defaultProps = array(
-            'title'     => 'Имя пользователя',
+            'title'   => 'Имя пользователя',
             'content' => str_repeat(sha1(mt_rand(10,99)), 50),
+            'user_id' => false,
         );
         $props = array_merge($defaultProps, $props);
 
         $ob = $this->makeModel('Article', $props, false);
-
-        if (!$user) {
-            $ob->setUser($this->makeUser(array(), $save));
-        }
 
         if ($save) {
             $ob->save();
@@ -73,14 +70,16 @@ class myTestObjectHelper
     {
         $defaultProps = array(
             'content' => str_repeat(sha1(mt_rand(10,99)), 50),
+            'user_id' => false,
         );
         $props = array_merge($defaultProps, $props);
 
         $ob = $this->makeModel('Comment', $props, false);
 
         if (!$article) {
-            $ob->setArticle($this->makeArticle(null, array(), $save));
+            $article = $this->makeArticle(null, array(), $save);
         }
+        $ob->setArticle($article);
 
         if ($save) {
             $ob->save();

@@ -8,10 +8,10 @@
          convertNoticesToExceptions="true"
          convertWarningsToExceptions="true"
          processIsolation="true"
-         stopOnFailure="true"
-         syntaxCheck="false"
+         stopOnFailure="false"
+         syntaxCheck="true"
          testSuiteLoaderClass="PHPUnit_Runner_StandardTestSuiteLoader"
-         verbose="true"
+         verbose="false"
          strict="true">
 
   <testsuites>

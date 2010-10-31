@@ -5,6 +5,7 @@ class myUnitTestCase extends PHPUnit_Framework_TestCase
 
     protected $helper = null;
 
+
     /**
      * Returns database connection to wrap tests with transaction
      */
@@ -12,6 +13,44 @@ class myUnitTestCase extends PHPUnit_Framework_TestCase
     {
         return Doctrine_Manager::getInstance()->getConnection('doctrine');
     }
+
+
+    /**
+     * Execute raw query and return result
+     *
+     * @param string $query
+     * @return mixed
+     */
+    protected function rawQuery($query)
+    {
+        return $this->getConnection()->getDbh()->query($query)->fetchAll();
+    }
+
+
+    /**
+     * Search in Doctrine DB using raw queries
+     *
+     * @param  string $model
+     * @param  array  $params
+     * @return mixed
+     */
+    protected function find($model, array $params = null)
+    {
+        $tableName = Doctrine::getTable($model)->getTableName();
+        $query = sprintf("SELECT tbl.* FROM %s AS tbl", $tableName);
+
+        $where = array();
+        if ($params) {
+            foreach ($params as $column => $value) {
+                $where[] = "tbl.{$column} = '{$value}'";
+            }
+
+            $query .= " WHERE " . implode(' AND ', $where);
+        }
+
+        return $this->rawQuery($query);
+    }
+
 
     /**
      * setUp method for PHPUnit
@@ -30,10 +69,8 @@ class myUnitTestCase extends PHPUnit_Framework_TestCase
 
         // Init concrete test config && autoload
         sfConfig::clear();
-        //if (!sfContext::hasInstance('frontend')) {
-            //$configuration = ProjectConfiguration::getApplicationConfiguration('frontend', 'test', true);
-            //sfContext::createInstance($configuration);
-        //}
+        $configuration = ProjectConfiguration::getApplicationConfiguration('frontend', 'test', true);
+        sfContext::createInstance($configuration);
 
         // Object helper
         $this->helper = $this->makeHelper();
@@ -43,6 +80,7 @@ class myUnitTestCase extends PHPUnit_Framework_TestCase
             $conn->beginTransaction();
         }
     }
+
 
     /**
      * tearDown method for PHPUnit
@@ -61,6 +99,10 @@ class myUnitTestCase extends PHPUnit_Framework_TestCase
         }
     }
 
+
+    /**
+     * Create helper object
+     */
     protected function makeHelper()
     {
         return new myTestObjectHelper();

@@ -1,4 +1,7 @@
 Article:
+  actAs:
+    RowSecurity:
+      admin_credential: admin
   columns:
     user_id:  { type: integer(8), notnull: true }
     title:    { type: string, notnull: true }
@@ -16,6 +19,9 @@ Article:
       filter: false
 
 Comment:
+  actAs:
+    RowSecurity:
+      admin_credential: admin
   columns:
     user_id:    { type: integer(8), notnull: true }
     article_id: { type: integer(8), notnull: true }
