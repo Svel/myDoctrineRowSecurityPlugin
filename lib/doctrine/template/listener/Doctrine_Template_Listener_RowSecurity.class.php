@@ -7,20 +7,22 @@
 class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
 {
     /**
-     * Array of timestampable options
+     * Array of options
      */
     protected $_options = array();
 
+
     /**
-     * __construct
+     * Constructor
      *
-     * @param string $options
+     * @param array $options
      * @return void
      */
-    public function __construct(array $options)
+    public function __construct(array $options = array())
     {
         $this->_options = $options;
     }
+
 
     /**
      * Перенаправление пользователя на страницу о недостаточности прав для выполнения операции.
@@ -30,9 +32,15 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
      */
     protected function throwException($_event)
     {
-        sfContext::getInstance()->getController()->forward(sfConfig::get('sf_secure_module'), sfConfig::get('sf_secure_action'));
+        if (sfContext::hasInstance()) {
+            sfContext::getInstance()
+                ->getController()
+                ->forward(sfConfig::get('sf_secure_module'), sfConfig::get('sf_secure_action'));
+        }
+
         throw new sfStopException();
     }
+
 
     /**
      * Проверка допустимости записи объекта.
@@ -42,14 +50,16 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
      */
     public function preInsert(Doctrine_Event $event)
     {
-        // Если операцию выполняет не администратор таблицы, и операция должна быть проверена системой безопасности
         $invoker = $event->getInvoker();
-        if ($this->hasUser() && !$this->isAdmin() && $invoker->isSecure()) {
+        // If we have user and security is not turned off
+        if ($this->hasUser() && $invoker->isSecure()) {
             $fieldName = $invoker->getTable()->getFieldName($this->_options['filtered_field']);
-            if (!$invoker[$fieldName]) {
-                $invoker->$fieldName = $this->getUserId();
-            } elseif ($this->getUserId() != $invoker[$fieldName]) {
-                // Пользователь пытается изменить чужие данные
+            // Set identifier if it is not set
+            if (!$invoker->get($fieldName)) {
+                $invoker->set($fieldName, $this->getUserId());
+            // or Deny operation if user has no credentials and trying to set foreign identifier
+            } elseif ($this->getUserId() != $invoker->get($fieldName) && !$this->isAdmin()) {
+                // TODO: refactor, it is a filter task, not behavior
                 $this->throwException($event);
             }
         }
@@ -84,10 +94,14 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
         $this->addDqlSecurityFilter($event);
     }
 
-
+    /**
+     * Context has User and User is associated with real record
+     *
+     * @return boolean
+     */
     protected function hasUser()
     {
-        return (sfContext::hasInstance() && sfContext::getInstance()->getUser());
+        return sfContext::hasInstance() && sfContext::getInstance()->getUser();
     }
 
     /**
@@ -120,12 +134,11 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
      */
     protected function isAdmin()
     {
-        $ret = false;
-        if (!is_null($this->_options['admin_credential'])) {
-            $ret = sfContext::getInstance()->getUser()->hasCredential($this->_options['admin_credential']);
+        if (!is_null($this->_options['admin_credential']) && $this->hasUser()) {
+            return sfContext::getInstance()->getUser()->hasCredential($this->_options['admin_credential']);
         }
 
-        return $ret;
+        return false;
     }
 
     /**
@@ -134,10 +147,11 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
      * @param unknown_type $_invoker
      * @return boolean  True если операция может быть выполнена, иначе false
      */
-    protected function isNotAllowed($_invoker)
+    protected function isNotAllowed(Doctrine_Record $invoker)
     {
-        $fieldName = $_invoker->getTable()->getFieldName($this->_options['filtered_field']);
-        return ($this->hasUser() && !(($this->getUserId() == $_invoker[$fieldName]) || !$_invoker->isSecure() || $this->isAdmin()));
+        $fieldName = $invoker->getTable()->getFieldName($this->_options['filtered_field']);
+
+        return ($this->hasUser() && !(($this->getUserId() == $invoker->get($fieldName)) || !$invoker->isSecure() || $this->isAdmin()));
     }
 
     /**
