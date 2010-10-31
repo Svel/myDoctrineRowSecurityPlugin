@@ -9,12 +9,13 @@ class Doctrine_Template_RowSecurity extends Doctrine_Template
     protected $_options = array(
         'filtered_field'    => 'user_id',
         'admin_credential'  => null,
+        'id_method'         => null,
         'alias'             => null,
         'type'              => 'integer',
         'length'            => 4,
         'options'           => array(),
-    ),
-    $isSecure = true;
+        'isSecure'          => true,
+    );
 
 
     /**
@@ -49,13 +50,26 @@ class Doctrine_Template_RowSecurity extends Doctrine_Template
         $this->addListener(new Doctrine_Template_Listener_RowSecurity($this->_options));
     }
 
-    public function isSecure($_isSecure = null)
+
+    /**
+     * Checks the record against `secure` flag
+     *
+     * @param  boolean $bool set current security
+     * @return boolean
+     */
+    public function isSecure($bool = null)
     {
-        if (!is_null($_isSecure)) {
-            $this->isSecure = $_isSecure;
+        $invoker = $this->getInvoker();
+
+        if (!$invoker->hasMappedValue('isSecure')) {
+            $invoker->mapValue('isSecure', $this->_options['isSecure']);
         }
 
-        return $this->isSecure;
+        if (!is_null($bool)) {
+            $invoker->set('isSecure', (bool) $bool);
+        }
+
+        return $invoker->get('isSecure');
     }
 
 }

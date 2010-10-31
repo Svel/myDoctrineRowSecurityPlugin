@@ -65,7 +65,7 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
     public function preDelete(Doctrine_Event $event)
     {
         if ($this->isNotAllowed($event->getInvoker())) {
-        $this->throwException($event);
+            $this->throwException($event);
         }
     }
 
@@ -90,9 +90,27 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
         return (sfContext::hasInstance() && sfContext::getInstance()->getUser());
     }
 
+    /**
+     * Get current user identifier from context
+     *
+     * @return int
+     * @throws sfConfigurationException
+     */
     protected function getUserId()
     {
-        return sfContext::getInstance()->getUser()->getUserId();
+        if ($this->hasUser()) {
+            $user = sfContext::getInstance()->getUser();
+
+            if (($user instanceof sfGuardSecurityUser) || method_exists($user, 'getUserId')) {
+                return $user->getUserId();
+            } elseif (method_exists($user, 'getId')) {
+                return $user->getId();
+            } elseif (isset($this->_options['id_method']) && method_exists($user, $this->_options['id_method'])) {
+                return $user->$$this->_options['id_method']();
+            }
+        }
+
+        throw new sfConfigurationException('Specify method to get owner identifier');
     }
 
     /**
@@ -152,10 +170,10 @@ class Doctrine_Template_Listener_RowSecurity extends Doctrine_Record_Listener
     protected function containsWhere(Doctrine_Query $_query, $_field, $_value)
     {
         $ret = false;
-        $params = $_query->getRawParams();
+        $params = $_query->getParams();
         $whereParams = $params['where'];
         if (count($whereParams)) {
-            $condition = $_field.' = ?';
+            $condition = $_field . ' = ?';
             $i = 0;
             foreach ($_query->getDqlPart('where') as $where) {
                 // Условие и параметры условия совпали с условием фильтрации по текущему пользователю
